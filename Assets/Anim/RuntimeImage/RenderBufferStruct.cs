@@ -70,15 +70,7 @@ namespace Anim.RuntimeImage
         }
     }
     
-    public struct CharacterEquipInstanceIndex
-    {
-        public int InstanceObject;
 
-        public CharacterEquipInstanceIndex(int objId)
-        {
-            InstanceObject = objId;
-        }
-    }
     
     public struct UpdateEquipBufferIndex
     {

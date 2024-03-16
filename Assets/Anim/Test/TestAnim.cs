@@ -53,7 +53,7 @@ namespace Anim.Test
         {
             entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var id = CharacterRenderSystem.RegisterCharacterRender(characterAsset);
-            characterArchetype = entityManager.CreateArchetype(typeof(CharacterRenderStateComponent));
+            characterArchetype = entityManager.CreateArchetype(typeof(CharacterRenderInstanceComponent));
             
             for (int i = 0; i < RegisterSprite.Count; i++)
             {
@@ -73,36 +73,40 @@ namespace Anim.Test
         [Button]
         public void Test(int count = 1, int id = 1)
         {
-            if (count > 0)
-            {
-                var characterRendererData = CharacterRenderSystem.GetCharacterRendererData(id);
-                var equipList = characterRendererData.GetEquipList();
-                var entities = new NativeArray<Entity>(count, Allocator.Temp);
-                entityManager.CreateEntity(characterArchetype, entities);
-                for (int i = 0; i < count; i++)
-                {
-                    entityManager.SetComponentData(entities[i], new CharacterRenderStateComponent() { TypeId = id });
-                    // 随机取一个位置
-                    var rand = Random.Range(0, 3);
-                    var equipTypeId = 0;
-                    if (rand == 1)
-                    {
-                        equipTypeId = 33;
-                    }
-                    else if (rand == 2)
-                    {
-                        equipTypeId = 37;
-                    }
-                    if (equipList[equipTypeId].Length > 1){
-                        var buffer = entityManager.AddBuffer<EquipmentDataChangeBuffer>(entities[i]);
-                        var randomSprite = Random.Range(0, equipList[equipTypeId].Length);
-                        buffer.Add(new EquipmentDataChangeBuffer() { Position = equipTypeId, NewId = equipList[equipTypeId][randomSprite] + 1   });
-                    }
-                    
-                }
-
-                entities.Dispose();
-            }
+            // if (count > 0)
+            // {
+            //     var characterRendererData = CharacterRenderSystem.GetCharacterRendererData(id);
+            //     var equipList = characterRendererData.GetEquipList();
+            //     var entities = new NativeArray<Entity>(count, Allocator.Temp);
+            //     entityManager.CreateEntity(characterArchetype, entities);
+            //     for (int i = 0; i < count; i++)
+            //     {
+            //         entityManager.SetComponentData(entities[i], new CharacterRenderInstanceComponent() { TypeId = id });
+            //         var rand = Random.Range(0, 3);
+            //         var equipTypeId = 0;
+            //         if (rand == 1)
+            //         {
+            //             equipTypeId = 33;
+            //         }
+            //         else if (rand == 2)
+            //         {
+            //             equipTypeId = 37;
+            //         }
+            //         if (equipList[equipTypeId].Length > 1){
+            //             var buffer = entityManager.AddBuffer<EquipmentDataChangeBuffer>(entities[i]);
+            //             var randomSprite = Random.Range(0, equipList[equipTypeId].Length);
+            //             buffer.Add(new EquipmentDataChangeBuffer() { Position = equipTypeId, NewId = equipList[equipTypeId][randomSprite] + 1   });
+            //         }
+            //         var localToWorld = new LocalToWorld();
+            //         localToWorld.Value = float4x4.identity;
+            //         localToWorld.Value.c3.xyz =  UnityEngine.Random.insideUnitSphere * new float3(20, 20, 0);
+            //         entityManager.AddComponent<LocalToWorld>(entities[i]);
+            //         entityManager.SetComponentData(entities[i], localToWorld);
+            //         
+            //     }
+            //
+            //     entities.Dispose();
+            // }
         }
 
 

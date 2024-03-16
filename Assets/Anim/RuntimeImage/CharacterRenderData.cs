@@ -15,23 +15,20 @@ namespace Anim.RuntimeImage
 {
     public class CharacterRendererData
     {
+        public int Id;
         private RuntimeImagePacker ImagePacker;
         private ComputeShader equipArrayIndexComputeShader;
-        public BufferDataWithSize<CharacterEquipInstanceIndex> EquipTexPosIdBuffer;
-        private BufferDataWithSize<Color> EquipColorBuffer;
-
-        private BufferDataWithSize<CharacterEquipInstanceIndex> MoveEquipBufferIndexBuffer;
-
-        public BufferDataWithSize<UpdateEquipBufferIndex> UpdateEquipBufferIndexBuffer;
-        private ComputeBuffer AnimLengthBuffer;
-        private BufferDataWithSize<RuntimeImagePacker.SpriteData> EquipInfoBuffer;
-        public Material CharacterMaterial;
-        public Mesh CharacterMesh;
+        private BufferDataWithSize<CharacterRenderInstanceComponent> _equipTexPosIdBuffer;
+        private BufferDataWithSize<Color> _equipColorBuffer;
+        private readonly BufferDataWithSize<CharacterRenderInstanceComponent> _moveEquipBufferIndexBuffer;
+        private readonly BufferDataWithSize<UpdateEquipBufferIndex> _updateEquipBufferIndexBuffer;
+        private ComputeBuffer _animLengthBuffer;
+        private readonly BufferDataWithSize<RuntimeImagePacker.SpriteData> _equipInfoBuffer;
+        private Material _characterMaterial;
+        private Mesh _characterMesh;
         public BatchMaterialID BatchMaterialID;
         public BatchMeshID BatchMeshID;
-        public NativeList<CharacterEquipInstanceIndex> UnLoadIndex;
-        private int CurrentUnLoadIndex;
-        private int CurrentUseIndex;
+        public NativeList<CharacterRenderInstanceComponent> UnLoadIndex;
         public int SpriteCount;
 
         public Entity TemplateCharacterEntity;
@@ -42,30 +39,34 @@ namespace Anim.RuntimeImage
             return EquipList;
         }
 
-        public void RemoveUsedInstance(NativeList<CharacterEquipInstanceIndex> changeMoveId)
+        public int GetCurrentInstanceId()
+        {
+            return _equipTexPosIdBuffer.UsedSize / SpriteCount;
+        }
+
+        public void RemoveUsedInstance(NativeList<CharacterRenderInstanceComponent> changeMoveId)
         {
             var array = changeMoveId.ToArray(Allocator.Temp);
-            MoveEquipBufferIndexBuffer.AddData(array.ToArray());
+            _moveEquipBufferIndexBuffer.AddData(array.ToArray());
             array.Dispose();
-            equipArrayIndexComputeShader.SetBuffer(0, "_MoveEquipBufferIndexBuffer", MoveEquipBufferIndexBuffer.buffer);
-            equipArrayIndexComputeShader.SetBuffer(0, "_EquipTexPosIdBuffer", EquipTexPosIdBuffer.buffer);
-            equipArrayIndexComputeShader.SetBuffer(0, "_EquipColorBuffer", EquipColorBuffer.buffer);
-            equipArrayIndexComputeShader.SetInt( "SpriteCount", SpriteCount);
+            equipArrayIndexComputeShader.SetBuffer(0, "_MoveEquipBufferIndexBuffer", _moveEquipBufferIndexBuffer.buffer);
+            equipArrayIndexComputeShader.SetBuffer(0, "_EquipTexPosIdBuffer", _equipTexPosIdBuffer.buffer);
+            equipArrayIndexComputeShader.SetBuffer(0, "_EquipColorBuffer", _equipColorBuffer.buffer);
+            equipArrayIndexComputeShader.SetInt("SpriteCount", SpriteCount);
             equipArrayIndexComputeShader.Dispatch(0, changeMoveId.Length, 1, 1);
         }
-        
+
         public void SetEquip(NativeList<UpdateEquipBufferIndex> updateEquipBuffer)
         {
-            
             var array = updateEquipBuffer.ToArray(Allocator.Temp);
-            UpdateEquipBufferIndexBuffer.ResetCount();
-            UpdateEquipBufferIndexBuffer.AddData(array.ToArray());
+            _updateEquipBufferIndexBuffer.ResetCount();
+            _updateEquipBufferIndexBuffer.AddData(array.ToArray());
             array.Dispose();
-            
-            equipArrayIndexComputeShader.SetBuffer(1, "_SetEquipTexPosIdBuffer", UpdateEquipBufferIndexBuffer.buffer);
-            equipArrayIndexComputeShader.SetBuffer(1, "_EquipTexPosIdBuffer", EquipTexPosIdBuffer.buffer);
-            equipArrayIndexComputeShader.SetBuffer(1, "_EquipColorBuffer", EquipColorBuffer.buffer);
-            equipArrayIndexComputeShader.SetInt( "SpriteCount", SpriteCount);
+
+            equipArrayIndexComputeShader.SetBuffer(1, "_SetEquipTexPosIdBuffer", _updateEquipBufferIndexBuffer.buffer);
+            equipArrayIndexComputeShader.SetBuffer(1, "_EquipTexPosIdBuffer", _equipTexPosIdBuffer.buffer);
+            equipArrayIndexComputeShader.SetBuffer(1, "_EquipColorBuffer", _equipColorBuffer.buffer);
+            equipArrayIndexComputeShader.SetInt("SpriteCount", SpriteCount);
             equipArrayIndexComputeShader.Dispatch(1, updateEquipBuffer.Length, 1, 1);
         }
 
@@ -78,60 +79,58 @@ namespace Anim.RuntimeImage
                 EquipList[i] = new NativeList<int>(128, Allocator.Persistent);
             }
 
-            UpdateEquipBufferIndexBuffer = new BufferDataWithSize<UpdateEquipBufferIndex>(1024, null);
-            EquipInfoBuffer = new BufferDataWithSize<RuntimeImagePacker.SpriteData>(1024, OnEquipInfoBufferChange);
-            UnLoadIndex = new NativeList<CharacterEquipInstanceIndex>(Allocator.Persistent);
+            _updateEquipBufferIndexBuffer = new BufferDataWithSize<UpdateEquipBufferIndex>(1024, null);
+            _equipInfoBuffer = new BufferDataWithSize<RuntimeImagePacker.SpriteData>(1024, OnEquipInfoBufferChange);
+            UnLoadIndex = new NativeList<CharacterRenderInstanceComponent>(Allocator.Persistent);
             RegisterToMeshRender(bakedCharacterAsset);
             InitSpriteImagePacker(bakedCharacterAsset);
             InitRenderTexture(bakedCharacterAsset.SpriteRenderCount);
             SetAnimLength(bakedCharacterAsset);
             CreateDefaultEquip(bakedCharacterAsset);
-            CharacterMaterial.SetBuffer("_EquipInfoBuffer", EquipInfoBuffer.buffer);
-            CreateCharacterTemplate();
-            MoveEquipBufferIndexBuffer = new BufferDataWithSize<CharacterEquipInstanceIndex>(1024, null);
+            _characterMaterial.SetBuffer("_EquipInfoBuffer", _equipInfoBuffer.buffer);
+            _moveEquipBufferIndexBuffer = new BufferDataWithSize<CharacterRenderInstanceComponent>(1024, null);
             equipArrayIndexComputeShader = GameObject.Instantiate(bakedCharacterAsset.WriteEquipArrayIndexComputeShader);
         }
-        
+
         private void InitRenderTexture(int spriteCount)
         {
-            EquipTexPosIdBuffer = new BufferDataWithSize<CharacterEquipInstanceIndex>(spriteCount * 4, OnEquipTexPosIdBufferChange);
-            EquipColorBuffer = new BufferDataWithSize<Color>(spriteCount * 4, OnEquipColorBufferSizeChange);
-            CharacterMaterial.SetBuffer("_EquipTexPosIdBuffer", EquipTexPosIdBuffer.buffer);
-            CharacterMaterial.SetBuffer("_EquipColorBuffer", EquipColorBuffer.buffer);
+            _equipTexPosIdBuffer = new BufferDataWithSize<CharacterRenderInstanceComponent>(spriteCount * 4, OnEquipTexPosIdBufferChange);
+            _equipColorBuffer = new BufferDataWithSize<Color>(spriteCount * 4, OnEquipColorBufferSizeChange);
+            _characterMaterial.SetBuffer("_EquipTexPosIdBuffer", _equipTexPosIdBuffer.buffer);
+            _characterMaterial.SetBuffer("_EquipColorBuffer", _equipColorBuffer.buffer);
         }
 
 
         private void OnEquipTexPosIdBufferChange(ComputeBuffer buffer)
         {
-            CharacterMaterial.SetBuffer("_EquipTexPosIdBuffer", buffer);
+            _characterMaterial.SetBuffer("_EquipTexPosIdBuffer", buffer);
         }
 
         private void OnEquipColorBufferSizeChange(ComputeBuffer buffer)
         {
-            CharacterMaterial.SetBuffer("_EquipColorBuffer", buffer);
+            _characterMaterial.SetBuffer("_EquipColorBuffer", buffer);
         }
 
         private void OnEquipInfoBufferChange(ComputeBuffer buffer)
         {
-            CharacterMaterial.SetBuffer("_EquipInfoBuffer", buffer);
+            _characterMaterial.SetBuffer("_EquipInfoBuffer", buffer);
         }
 
         private void InitSpriteImagePacker(BakedCharacterAsset bakedCharacterAsset)
         {
             ImagePacker = new RuntimeImagePacker(512, 512, 2);
             ImagePacker.Create();
-            CharacterMaterial.SetTexture("_EquipSpriteTex", ImagePacker.GetTexture());
-            CharacterMaterial.SetInt("_SpriteQuadCount", bakedCharacterAsset.SpriteRenderCount);
-            CharacterMaterial.SetVector("_EquipIndexTexSizeData", new Vector4(512, 512));
-            CharacterMaterial.SetVector("_AnimTexSizeData", new Vector4(512, 512));
-
+            _characterMaterial.SetTexture("_EquipSpriteTex", ImagePacker.GetTexture());
+            _characterMaterial.SetInt("_SpriteQuadCount", bakedCharacterAsset.SpriteRenderCount);
+            _characterMaterial.SetVector("_EquipIndexTexSizeData", new Vector4(512, 512));
+            _characterMaterial.SetVector("_AnimTexSizeData", new Vector4(512, 512));
         }
 
-        
+
         private void CreateDefaultEquip(BakedCharacterAsset bakedCharacterAsset)
         {
             List<RuntimeImagePacker.SpriteData> spriteDataAddList = new(bakedCharacterAsset.DefaultSprites.Count);
-            List<CharacterEquipInstanceIndex> equipTexPosIdList = new(bakedCharacterAsset.DefaultSprites.Count);
+            List<CharacterRenderInstanceComponent> equipTexPosIdList = new(bakedCharacterAsset.DefaultSprites.Count);
             // 创建默认的装备
             for (int i = 0; i < bakedCharacterAsset.DefaultSprites.Count; i++)
             {
@@ -139,7 +138,7 @@ namespace Anim.RuntimeImage
 
                 if (sprite == null)
                 {
-                    equipTexPosIdList.Add(new CharacterEquipInstanceIndex(){InstanceObject = -1});
+                    equipTexPosIdList.Add(new CharacterRenderInstanceComponent(-1));
                     continue;
                 }
 
@@ -152,17 +151,18 @@ namespace Anim.RuntimeImage
                     EquipList[i].Add(index);
                 }
 
-                equipTexPosIdList.Add( new CharacterEquipInstanceIndex(){InstanceObject = index + 1});
+                equipTexPosIdList.Add(new CharacterRenderInstanceComponent(index + 1));
             }
+
             Debug.Log(spriteDataAddList.Count);
-            EquipInfoBuffer.AddData(spriteDataAddList.ToArray());
-            EquipTexPosIdBuffer.AddData(equipTexPosIdList.ToArray());
+            _equipInfoBuffer.AddData(spriteDataAddList.ToArray());
+            _equipTexPosIdBuffer.AddData(equipTexPosIdList.ToArray());
         }
 
 
         private void SetAnimLength(BakedCharacterAsset bakedCharacterAsset)
         {
-            AnimLengthBuffer = new ComputeBuffer(bakedCharacterAsset.ClipInfo.Count, 12);
+            _animLengthBuffer = new ComputeBuffer(bakedCharacterAsset.ClipInfo.Count, 12);
             var clipInfoArray = new List<AnimClipInfo>();
             for (int i = 0; i < bakedCharacterAsset.ClipInfo.Count; i++)
             {
@@ -174,59 +174,35 @@ namespace Anim.RuntimeImage
                 clipInfoArray.Add(clipInfoRuntime);
             }
 
-            AnimLengthBuffer.SetData(clipInfoArray);
-            CharacterMaterial.SetBuffer("_AnimClipInfoBuffer", AnimLengthBuffer);
+            _animLengthBuffer.SetData(clipInfoArray);
+            _characterMaterial.SetBuffer("_AnimClipInfoBuffer", _animLengthBuffer);
         }
 
         private void RegisterToMeshRender(BakedCharacterAsset bakedCharacterAsset)
         {
-            CharacterMaterial = bakedCharacterAsset.CharacterMaterial;
-            CharacterMaterial.SetTexture("_PosAndScaleAnimTex", bakedCharacterAsset.PosScaleTex);
-            CharacterMaterial.SetTexture("_RotationRadiusAnimTex", bakedCharacterAsset.RotTex);
-            CharacterMesh = bakedCharacterAsset.mesh;
+            _characterMaterial = bakedCharacterAsset.CharacterMaterial;
+            _characterMaterial.SetTexture("_PosAndScaleAnimTex", bakedCharacterAsset.PosScaleTex);
+            _characterMaterial.SetTexture("_RotationRadiusAnimTex", bakedCharacterAsset.RotTex);
+            _characterMesh = bakedCharacterAsset.mesh;
 
             var world = World.DefaultGameObjectInjectionWorld;
             var entityGraphSystem = world.GetOrCreateSystemManaged<EntitiesGraphicsSystem>();
-            BatchMaterialID = entityGraphSystem.RegisterMaterial(CharacterMaterial);
-            BatchMeshID = entityGraphSystem.RegisterMesh(CharacterMesh);
-        }
-
-        private void CreateCharacterTemplate()
-        {
-            var world = World.DefaultGameObjectInjectionWorld;
-            var entityManager = world.EntityManager;
-            TemplateCharacterEntity = entityManager.CreateEntity(
-                // typeof(DisableRendering),
-                typeof(CharacterBaseColorPropertyComp),
-                typeof(CharacterAnimationIndexPropertyComp),
-                typeof(CharacterAnimationStartTimePropertyComp),
-                typeof(CharacterEquipIndexBufferIndexPropertyComp)
-            );
-
-            var renderMeshDesc = new RenderMeshDescription()
-            {
-                FilterSettings = RenderFilterSettings.Default,
-                LightProbeUsage = LightProbeUsage.Off,
-            };
-
-            RenderMeshUtility.AddComponents(
-                TemplateCharacterEntity,
-                entityManager,
-                renderMeshDesc,
-                new RenderMeshArray(new Material[]{CharacterMaterial}, new Mesh[]{CharacterMesh}),
-                new MaterialMeshInfo(BatchMaterialID, BatchMeshID)
-            );
+            BatchMaterialID = entityGraphSystem.RegisterMaterial(_characterMaterial);
+            BatchMeshID = entityGraphSystem.RegisterMesh(_characterMesh);
         }
 
 
-        public void RegisterSprite(int equipTypeIndex ,Sprite sprite)
+
+
+        public void RegisterSprite(int equipTypeIndex, Sprite sprite)
         {
             var hasAdd = ImagePacker.TryGetOrRegisterSpriteIndex(sprite, out var index);
             ImagePacker.TryGetSpriteDataByIndex(index, out var data);
             if (!hasAdd)
             {
-                EquipInfoBuffer.AddData(new RuntimeImagePacker.SpriteData[]{data});
+                _equipInfoBuffer.AddData(new RuntimeImagePacker.SpriteData[] { data });
             }
+
             EquipList[equipTypeIndex].Add(index);
         }
     }
