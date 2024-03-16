@@ -89,9 +89,9 @@ namespace Anim.Test
                     {
                         equipTypeId = 33;
                     }
-                    else
+                    else if (rand == 2)
                     {
-                        equipTypeId = 2;
+                        equipTypeId = 37;
                     }
                     if (equipList[equipTypeId].Length > 1){
                         var buffer = entityManager.AddBuffer<EquipmentDataChangeBuffer>(entities[i]);

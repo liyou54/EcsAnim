@@ -225,9 +225,9 @@ namespace Anim.RuntimeImage
             ImagePacker.TryGetSpriteDataByIndex(index, out var data);
             if (!hasAdd)
             {
-                EquipList[equipTypeIndex].Add(index);
                 EquipInfoBuffer.AddData(new RuntimeImagePacker.SpriteData[]{data});
             }
+            EquipList[equipTypeIndex].Add(index);
         }
     }
 }

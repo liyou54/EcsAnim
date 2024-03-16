@@ -292,7 +292,18 @@ MonoBehaviour:
     - {fileID: -7786538801905712091, guid: d06e0fb5c21f64348bee8578bf96b687, type: 3}
   - SpriteTypeId: 37
     Sprites:
+    - {fileID: 21300000, guid: c18e16e6d6a3cd14e8fc3a6251056630, type: 3}
+    - {fileID: 21300000, guid: e25f01b89de966f4abff08cc08e602f2, type: 3}
+    - {fileID: 21300000, guid: 10f3281741b928245bb8471e9a3a059d, type: 3}
+    - {fileID: 21300000, guid: e1c72028469206f4a86d784c02f2e6f2, type: 3}
+    - {fileID: 21300000, guid: b56505823876a5a448e0be1c363f9722, type: 3}
+    - {fileID: 21300000, guid: 920c78345b8ba8a468930648a55f2be3, type: 3}
+    - {fileID: 21300000, guid: 4579ff30af934574092a7e12966b2c0e, type: 3}
+    - {fileID: 21300000, guid: 18f6123fd85d58a4da1b7dd1d796c5bd, type: 3}
+    - {fileID: 21300000, guid: 1a50e8fa88bb9414998d99fdacac8f07, type: 3}
     - {fileID: 21300000, guid: 0e9d3ac65321ad74794f967dbf1934f5, type: 3}
+    - {fileID: 21300000, guid: 7ef101d26a4e5634c8e8a4c75743eaff, type: 3}
+    - {fileID: 21300000, guid: 5aaec06a0b646d7499fe95181ea14e58, type: 3}
   - SpriteTypeId: 38
     Sprites:
     - {fileID: 5223213533427645220, guid: d24756e433435b249be5737019648d69, type: 3}
