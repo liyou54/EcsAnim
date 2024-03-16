@@ -1,0 +1,45 @@
+#pragma kernel UnLoadEquipBufferIndexBuffer
+#pragma kernel UpdateEquipBufferIndexFunc
+
+
+int SpriteCount;
+
+struct CharacterEquipInstanceIndex
+{
+    int Instance;
+};
+
+struct UpdateEquipBufferIndex
+{
+    int IndexEquip;
+    int Value;
+};
+
+
+RWStructuredBuffer<CharacterEquipInstanceIndex> _MoveEquipBufferIndexBuffer;
+RWStructuredBuffer<UpdateEquipBufferIndex> _SetEquipTexPosIdBuffer;
+RWStructuredBuffer<CharacterEquipInstanceIndex> _EquipTexPosIdBuffer;
+RWStructuredBuffer<float4> _EquipColorBuffer;
+
+
+[numthreads(1, 1, 1)]
+void UnLoadEquipBufferIndexBuffer(uint3 id : SV_DispatchThreadID)
+{
+    int objIndex = _MoveEquipBufferIndexBuffer[id.x].Instance;
+    for (int i = 0; i < SpriteCount; i++)
+    {
+        CharacterEquipInstanceIndex spriteValue = _EquipTexPosIdBuffer[i];
+        int spriteIndex = objIndex * SpriteCount + i;
+        _EquipTexPosIdBuffer[spriteIndex] = spriteValue;
+        _EquipColorBuffer[spriteIndex] = 1;
+    }
+}
+
+[numthreads(1, 1, 1)]
+void UpdateEquipBufferIndexFunc(uint3 id : SV_DispatchThreadID)
+{
+    UpdateEquipBufferIndex changeData = _SetEquipTexPosIdBuffer[id.x];
+    int objIndex = changeData.IndexEquip;
+    CharacterEquipInstanceIndex res = {changeData.Value};
+    _EquipTexPosIdBuffer[objIndex] = res;
+}
