@@ -18,7 +18,7 @@ namespace Anim.RuntimeImage
         public int Id;
         private RuntimeImagePacker ImagePacker;
         private ComputeShader equipArrayIndexComputeShader;
-        private BufferDataWithSize<CharacterRenderInstanceComponent> _equipTexPosIdBuffer;
+        public BufferDataWithSize<CharacterRenderInstanceComponent> EquipTexPosIdBuffer;
         private BufferDataWithSize<Color> _equipColorBuffer;
         private readonly BufferDataWithSize<CharacterRenderInstanceComponent> _moveEquipBufferIndexBuffer;
         private readonly BufferDataWithSize<UpdateEquipBufferIndex> _updateEquipBufferIndexBuffer;
@@ -31,6 +31,8 @@ namespace Anim.RuntimeImage
         public NativeList<CharacterRenderInstanceComponent> UnLoadIndex;
         public int SpriteCount;
 
+ 
+        
         public Entity TemplateCharacterEntity;
         private NativeArray<NativeList<int>> EquipList;
 
@@ -41,30 +43,25 @@ namespace Anim.RuntimeImage
 
         public int GetCurrentInstanceId()
         {
-            return _equipTexPosIdBuffer.UsedSize / SpriteCount;
+            return EquipTexPosIdBuffer.UsedSize / SpriteCount;
         }
 
-        public void RemoveUsedInstance(NativeList<CharacterRenderInstanceComponent> changeMoveId)
+        public void RemoveUsedInstance(NativeArray<CharacterRenderInstanceComponent> changeMoveId)
         {
-            var array = changeMoveId.ToArray(Allocator.Temp);
-            _moveEquipBufferIndexBuffer.AddData(array.ToArray());
-            array.Dispose();
+            _moveEquipBufferIndexBuffer.AddData(changeMoveId.ToArray());
             equipArrayIndexComputeShader.SetBuffer(0, "_MoveEquipBufferIndexBuffer", _moveEquipBufferIndexBuffer.buffer);
-            equipArrayIndexComputeShader.SetBuffer(0, "_EquipTexPosIdBuffer", _equipTexPosIdBuffer.buffer);
+            equipArrayIndexComputeShader.SetBuffer(0, "_EquipTexPosIdBuffer", EquipTexPosIdBuffer.buffer);
             equipArrayIndexComputeShader.SetBuffer(0, "_EquipColorBuffer", _equipColorBuffer.buffer);
             equipArrayIndexComputeShader.SetInt("SpriteCount", SpriteCount);
             equipArrayIndexComputeShader.Dispatch(0, changeMoveId.Length, 1, 1);
         }
 
-        public void SetEquip(NativeList<UpdateEquipBufferIndex> updateEquipBuffer)
+        public void SetEquip(NativeArray<UpdateEquipBufferIndex> updateEquipBuffer)
         {
-            var array = updateEquipBuffer.ToArray(Allocator.Temp);
             _updateEquipBufferIndexBuffer.ResetCount();
-            _updateEquipBufferIndexBuffer.AddData(array.ToArray());
-            array.Dispose();
-
+            _updateEquipBufferIndexBuffer.AddData(updateEquipBuffer.ToArray());
             equipArrayIndexComputeShader.SetBuffer(1, "_SetEquipTexPosIdBuffer", _updateEquipBufferIndexBuffer.buffer);
-            equipArrayIndexComputeShader.SetBuffer(1, "_EquipTexPosIdBuffer", _equipTexPosIdBuffer.buffer);
+            equipArrayIndexComputeShader.SetBuffer(1, "_EquipTexPosIdBuffer", EquipTexPosIdBuffer.buffer);
             equipArrayIndexComputeShader.SetBuffer(1, "_EquipColorBuffer", _equipColorBuffer.buffer);
             equipArrayIndexComputeShader.SetInt("SpriteCount", SpriteCount);
             equipArrayIndexComputeShader.Dispatch(1, updateEquipBuffer.Length, 1, 1);
@@ -94,9 +91,9 @@ namespace Anim.RuntimeImage
 
         private void InitRenderTexture(int spriteCount)
         {
-            _equipTexPosIdBuffer = new BufferDataWithSize<CharacterRenderInstanceComponent>(spriteCount * 4, OnEquipTexPosIdBufferChange);
+            EquipTexPosIdBuffer = new BufferDataWithSize<CharacterRenderInstanceComponent>(spriteCount * 4, OnEquipTexPosIdBufferChange);
             _equipColorBuffer = new BufferDataWithSize<Color>(spriteCount * 4, OnEquipColorBufferSizeChange);
-            _characterMaterial.SetBuffer("_EquipTexPosIdBuffer", _equipTexPosIdBuffer.buffer);
+            _characterMaterial.SetBuffer("_EquipTexPosIdBuffer", EquipTexPosIdBuffer.buffer);
             _characterMaterial.SetBuffer("_EquipColorBuffer", _equipColorBuffer.buffer);
         }
 
@@ -156,7 +153,7 @@ namespace Anim.RuntimeImage
 
             Debug.Log(spriteDataAddList.Count);
             _equipInfoBuffer.AddData(spriteDataAddList.ToArray());
-            _equipTexPosIdBuffer.AddData(equipTexPosIdList.ToArray());
+            EquipTexPosIdBuffer.AddData(equipTexPosIdList.ToArray());
         }
 
 

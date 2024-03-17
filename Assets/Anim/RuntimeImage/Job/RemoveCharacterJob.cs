@@ -1,22 +1,24 @@
 using Anim.RuntimeImage.DeleteSystem;
+using Anim.Shader;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Entities.Graphics;
+using Unity.Rendering;
 
 namespace Anim.RuntimeImage.Job
 {
     public struct RemoveCharacterJob : IJobChunk,IJobEntityChunkBeginEnd
     {
         public EntityTypeHandle EntityType;
-        public SharedComponentTypeHandle<CharacterRenderIdComponent> CharacterRenderIdType;
         public ComponentTypeHandle<CharacterRenderInstanceComponent> CharacterEquipInstanceIndexType;
         public NativeArray<CharacterRenderInstanceComponent> UnUseIndexArray;
-        public int CurrentUnUseIndex;
+        public NativeArray<int>  CurrentUnUseIndex;
         public EntityCommandBuffer Ecb;
 
         public bool IsFull()
         {
-            return CurrentUnUseIndex == UnUseIndexArray.Length;
+            return CurrentUnUseIndex[0] == UnUseIndexArray.Length;
         }
         
         public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
@@ -31,10 +33,23 @@ namespace Anim.RuntimeImage.Job
                     return;
                 }
                 var entity = entities[id];
-                UnUseIndexArray[CurrentUnUseIndex++] = characterRenderIds[id]; 
+                UnUseIndexArray[CurrentUnUseIndex[0]++] = characterRenderIds[id]; 
                 Ecb.RemoveComponent<CharacterRenderInstanceComponent>(entity);
                 Ecb.RemoveComponent<CharacterRenderIdComponent>(entity);
-                Ecb.AddComponent<DeleteTag>(entity);
+                Ecb.RemoveComponent<RenderBounds>(entity);
+                Ecb.RemoveComponent<WorldRenderBounds>(entity);
+                Ecb.RemoveComponent<WorldToLocal_Tag>(entity);
+                Ecb.RemoveComponent<PerInstanceCullingTag>(entity);
+                Ecb.RemoveComponent<RenderMeshArray>(entity);
+                Ecb.RemoveComponent<MaterialMeshInfo>(entity);
+                Ecb.RemoveComponent<EntitiesGraphicsChunkInfo>(entity);
+                Ecb.RemoveComponent<ChunkWorldRenderBounds>(entity);
+                Ecb.RemoveComponent<RenderFilterSettings>(entity);
+                Ecb.RemoveComponent<CharacterAnimationIndexPropertyComp>(entity);
+                Ecb.RemoveComponent<CharacterAnimationStartTimePropertyComp>(entity);
+                Ecb.RemoveComponent<CharacterBaseColorPropertyComp>(entity);
+                Ecb.RemoveComponent<CharacterRenderStateComp>(entity);
+                // Ecb.AddComponent<DeleteTag>(entity);
             }
             
         }

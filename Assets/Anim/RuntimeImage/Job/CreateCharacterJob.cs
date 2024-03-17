@@ -6,31 +6,44 @@ using Unity.Entities;
 using Unity.Entities.Graphics;
 using Unity.Rendering;
 using Unity.Transforms;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Serialization;
 
 namespace Anim.RuntimeImage.Job
 {
-    public struct CreateCharacterJob : IJobChunk,IJobEntityChunkBeginEnd
+    public struct CreateCharacterJob : IJobChunk, IJobEntityChunkBeginEnd
     {
         public EntityTypeHandle EntityType;
-        public SharedComponentTypeHandle<CharacterRenderIdComponent> CharacterRenderStateType;
+        public SharedComponentTypeHandle<CharacterRenderIdComponent> CharacterRenderIdType;
+        public SharedComponentTypeHandle<CharacterRenderStateComp> CharacterRenderStateType;
+
         public EntityCommandBuffer Ecb;
-        public int CurrentUnUseIndex;
+
+        // public int CurrentUnUseIndex;
         public NativeArray<CharacterRenderInstanceComponent> UnUseIndexArray;
-        public int CurrentAddIndex;
-        public NativeArray<CharacterRenderInstanceComponent> AddIndexArray;
+
+        // public int CurrentAddIndex;
+        // public NativeArray<CharacterRenderInstanceComponent> AddIndexArray;
         public BatchMaterialID BatchMaterialId;
         public BatchMeshID BatchMeshID;
         public RenderFilterSettings RenderFilterSettings;
-        public  int StartInstanceId; // 这个结束后结算使用
-        public int CurrentInstanceId;
 
+        public int StartInstanceId; // 这个结束后结算使用
 
+        // 0 CurrentInstanceId 1 CurrentUnUseIndex 2 CurrentAddIndex
+        public NativeArray<int> RefData;
+
+        public enum CurrentCountEnum
+        {
+            CurrentInstanceId = 0,
+            CurrentUnUseIndex = 1,
+            CurrentAddIndex = 2
+        }
 
         private bool IsFull()
         {
-            bool isFull = CurrentAddIndex == AddIndexArray.Length;
+            bool isFull = RefData[(int)CurrentCountEnum.CurrentUnUseIndex] + RefData[(int)CurrentCountEnum.CurrentInstanceId] - StartInstanceId >= 1024;
             return isFull;
         }
 
@@ -52,18 +65,16 @@ namespace Anim.RuntimeImage.Job
 
         private int GetInstanceId()
         {
-            if (CurrentUnUseIndex < UnUseIndexArray.Length)
+            if (RefData[(int)CurrentCountEnum.CurrentUnUseIndex] < UnUseIndexArray.Length)
             {
-                return UnUseIndexArray[CurrentUnUseIndex++];
+                return UnUseIndexArray[RefData[(int)CurrentCountEnum.CurrentUnUseIndex]++];
             }
-
-            return CurrentInstanceId++;
+            return RefData[(int)CurrentCountEnum.CurrentInstanceId]++;
         }
 
 
         public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
         {
-
             var entities = chunk.GetNativeArray(EntityType);
 
             foreach (var entity in entities)
@@ -72,9 +83,11 @@ namespace Anim.RuntimeImage.Job
                 {
                     return;
                 }
+
                 //
                 var instanceId = GetInstanceId();
-                AddIndexArray[CurrentAddIndex++] = instanceId; 
+                // AddIndexArray[RefData[(int)CurrentCountEnum.CurrentAddIndex]++] = instanceId;
+                Ecb.SetSharedComponent(entity, new CharacterRenderStateComp() { State = CharacterRenderState.Worrking });
                 Ecb.AddComponent(entity, new CharacterRenderInstanceComponent()
                 {
                     InstanceId = instanceId
@@ -92,6 +105,8 @@ namespace Anim.RuntimeImage.Job
 
             return true;
         }
+
+
 
         public void OnChunkEnd(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask, bool chunkWasExecuted)
         {

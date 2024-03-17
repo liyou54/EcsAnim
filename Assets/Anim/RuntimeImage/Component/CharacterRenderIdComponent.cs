@@ -15,8 +15,13 @@ namespace Anim.RuntimeImage
     public struct CharacterRenderIdComponent:ICleanupSharedComponentData
     {
         public int TypeId;
-        public CharacterRenderState State; 
     }
+
+    public struct CharacterRenderStateComp : ICleanupSharedComponentData
+    {
+        public CharacterRenderState State;
+    }
+
     
     // 这个用于标记状态 
     [MaterialProperty("_EquipIndexBufferIndex")]
