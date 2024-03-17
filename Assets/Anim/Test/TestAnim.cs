@@ -97,14 +97,17 @@ namespace Anim.Test
                         var buffer = entityManager.AddBuffer<EquipmentDataChangeBuffer>(entities[i]);
                         var randomSprite = Random.Range(0, equipList[equipTypeId].Length);
                         buffer.Add(new EquipmentDataChangeBuffer() { Position = equipTypeId, NewId = equipList[equipTypeId][randomSprite]   });
-                        Debug.Log($"Add Equip {equipTypeId} {equipList[equipTypeId][randomSprite]} ");
                     }
                     var localToWorld = new LocalToWorld();
                     localToWorld.Value = float4x4.identity;
-                    localToWorld.Value.c3.xyz =  UnityEngine.Random.insideUnitSphere * new float3(5, 5, 0);
+                    localToWorld.Value.c3.xyz =  UnityEngine.Random.insideUnitSphere * new float3(11, 11, 0);
                     entityManager.AddComponent<LocalToWorld>(entities[i]);
+                    entityManager.AddComponent<CharacterAnimationIndexPropertyComp>(entities[i]);
+                    entityManager.AddComponent<CharacterAnimationStartTimePropertyComp>(entities[i]);
                     entityManager.SetComponentData(entities[i], localToWorld);
-                    
+                    entityManager.SetComponentData(entities[i], new CharacterAnimationIndexPropertyComp()  { Value = Random.Range(1,11) });
+                    entityManager.SetComponentData(entities[i], new CharacterAnimationStartTimePropertyComp() { Value = Random.Range(0,1f) });
+
                 }
             
                 entities.Dispose();
