@@ -6,6 +6,5 @@ namespace Scrpit.Event
     public partial class EventGroupSystem:ComponentSystemGroup
 
     {
-
     }
 }

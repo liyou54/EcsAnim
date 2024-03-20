@@ -62,8 +62,8 @@ namespace Map
         protected override void OnUpdate()
         {
             var query = GetEntityQuery(ComponentType.ReadOnly<EntityStatusComp>(),ComponentType.ReadOnly<BeTargetAbleTag>(), ComponentType.ReadOnly<LocalToWorld>());
-            query.ResetFilter();
-            query.SetSharedComponentFilter(new EntityStatusComp() { State = EntityStatus.Worrking });
+            // query.ResetFilter();
+            // query.SetSharedComponentFilter(new EntityStatusComp() { State = EntityStatus.Worrking });
             var count = query.CalculateEntityCount();
             var mapComp = GetMapChunkComponentData();
 
@@ -77,7 +77,7 @@ namespace Map
                 BackDynamicEntityMap = mapComp.BackDynamicEntityMap.AsParallelWriter(),
                 ChunkSize = mapComp.ChunkSize
             };
-            Dependency = calcEntityJob.ScheduleParallel(query, Dependency);
+           Dependency = calcEntityJob.ScheduleParallel(query, Dependency);
         }
     }
 }

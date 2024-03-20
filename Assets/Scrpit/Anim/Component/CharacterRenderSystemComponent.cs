@@ -1,12 +1,32 @@
+using System;
 using System.Collections.Generic;
+using Scrpit.Anim.Asset;
+using Scrpit.Config;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace Anim.RuntimeImage
 {
+    public struct AnimBlobKey:IEquatable<AnimBlobKey>
+    {
+        public int Id;
+        public FixedString32Bytes Name;
+        
+        public AnimBlobKey(int id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+        
+        public bool Equals(AnimBlobKey other)
+        {
+            return Id == other.Id && Name == other.Name;
+        }
+    }
     public class CharacterRendererData
     {
         public int Id;
@@ -24,8 +44,11 @@ namespace Anim.RuntimeImage
         public BatchMeshID BatchMeshID;
         public NativeList<CharacterRenderInstanceComponent> UnLoadIndex;
         public int SpriteCount;
+
         private NativeArray<NativeList<int>> EquipList;
-        private Dictionary<string,AnimClipInfo> _clipInfoDic = new Dictionary<string, AnimClipInfo>();
+
+        private Dictionary<string, BlobAssetReference<AnimClipBlob>> _clipInfoDic = new Dictionary<string, BlobAssetReference<AnimClipBlob>>();
+
         public NativeArray<NativeList<int>> GetEquipList()
         {
             return EquipList;
@@ -36,7 +59,7 @@ namespace Anim.RuntimeImage
             return EquipTexPosIdBuffer.UsedSize / SpriteCount;
         }
 
-        
+
         public void RemoveUsedInstance(NativeArray<CharacterRenderInstanceComponent> changeMoveId)
         {
             _moveEquipBufferIndexBuffer.AddData(changeMoveId.ToArray());
@@ -58,15 +81,17 @@ namespace Anim.RuntimeImage
             equipArrayIndexComputeShader.Dispatch(1, updateEquipBuffer.Length, 1, 1);
         }
 
-        public CharacterRendererData(BakedCharacterAsset bakedCharacterAsset)
+        public CharacterRendererData(BakedCharacterAsset bakedCharacterAsset, int id)
         {
             SpriteCount = bakedCharacterAsset.SpriteRenderCount;
+            Id = id;
             EquipList = new NativeArray<NativeList<int>>(SpriteCount, Allocator.Persistent);
             for (int i = 0; i < SpriteCount; i++)
             {
                 EquipList[i] = new NativeList<int>(128, Allocator.Persistent);
             }
 
+            // TODO Buffer大小传入
             _updateEquipBufferIndexBuffer = new BufferDataWithSize<UpdateEquipBufferIndex>(1024, null);
             _equipInfoBuffer = new BufferDataWithSize<RuntimeImagePacker.SpriteData>(1024, OnEquipInfoBufferChange);
             UnLoadIndex = new NativeList<CharacterRenderInstanceComponent>(Allocator.Persistent);
@@ -77,7 +102,8 @@ namespace Anim.RuntimeImage
             CreateDefaultEquip(bakedCharacterAsset);
             _characterMaterial.SetBuffer(EquipInfoBufferId, _equipInfoBuffer.buffer);
             _moveEquipBufferIndexBuffer = new BufferDataWithSize<CharacterRenderInstanceComponent>(1024, null);
-            equipArrayIndexComputeShader = GameObject.Instantiate(bakedCharacterAsset.WriteEquipArrayIndexComputeShader);
+            equipArrayIndexComputeShader = Object.Instantiate(bakedCharacterAsset.WriteEquipArrayIndexComputeShader);
+            SetCharacterBlobInfo(bakedCharacterAsset);
         }
 
         public void RegisterSprite(int equipTypeIndex, Sprite sprite)
@@ -192,12 +218,42 @@ namespace Anim.RuntimeImage
                 clipInfoRuntime.FrameCount = clipInfo.FrameCount;
                 clipInfoRuntime.Duration = clipInfo.Duration;
                 clipInfoArray.Add(clipInfoRuntime);
-                _clipInfoDic.Add(clipInfo.Name, clipInfoRuntime);
             }
-                        
 
             _animLengthBuffer.SetData(clipInfoArray);
             _characterMaterial.SetBuffer(AnimClipInfoBuffer, _animLengthBuffer);
+        }
+        
+        
+        private void SetCharacterBlobInfo(BakedCharacterAsset bakedCharacterAsset)
+        {
+            using var blobBuilder = new BlobBuilder(Allocator.Temp);
+            ref var characterBlob = ref blobBuilder.ConstructRoot<CharacterInfoBlob>();
+            var array = blobBuilder.Allocate(ref characterBlob.AnimBlob, bakedCharacterAsset.ClipInfo.Count);
+            for (int i = 0; i < bakedCharacterAsset.ClipInfo.Count; i++)
+            {
+                var clipInfo = bakedCharacterAsset.ClipInfo[i];
+                var blobInfo = GetAnimBlobAsset(i, clipInfo);
+                var key = new AnimBlobKey(Id, clipInfo.Name);
+                BlobCacheManager<AnimBlobKey, AnimClipBlob>.Add(key, blobInfo);
+                array[i] = clipInfo.Name;
+            }
+
+            var blob = blobBuilder.CreateBlobAssetReference<CharacterInfoBlob>(Allocator.Persistent);
+            BlobCacheManager<int, CharacterInfoBlob>.Add(Id, blob);
+        }
+
+        private BlobAssetReference<AnimClipBlob> GetAnimBlobAsset(int id, ClipInfo clipInfo)
+        {
+            using var blobBuilder = new BlobBuilder(Allocator.Temp);
+            var builder = blobBuilder;
+            ref var root = ref builder.ConstructRoot<AnimClipBlob>();
+            root.Id = id;
+            builder.AllocateString(ref root.Name, clipInfo.Name);
+            root.Duration = clipInfo.Duration;
+            root.FrameCount = clipInfo.FrameCount;
+            root.StartFrameTexIndex = clipInfo.StartFrameTexIndex;
+            return builder.CreateBlobAssetReference<AnimClipBlob>(Allocator.Persistent);
         }
 
         private void RegisterToMeshRender(BakedCharacterAsset bakedCharacterAsset)

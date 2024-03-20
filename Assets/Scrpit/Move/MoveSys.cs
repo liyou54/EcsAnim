@@ -41,9 +41,15 @@ namespace Scrpit.Move
 
                 if (!float.IsNaN(moveStepComp.NextPos.x) && !float.IsNaN(moveStepComp.NextPos.y))
                 {
+
+                    if (moveStepComp.NextPos.x - moveStepComp.LastPos.x != 0)
+                    {
+                        var scaleX = moveStepComp.NextPos.x - moveStepComp.LastPos.x > 0 ? -1 : 1;
+                        localToWorld.Value.c0.x = math.abs(localToWorld.Value.c0.x) * scaleX;
+                    }
                     moveStepComp.LastPos = localToWorld.Position.xy;
                     localToWorld.Value.c3.xy = moveStepComp.NextPos;
-                    moveStepComp.NextPos = float.NaN;
+                    // moveStepComp.NextPos = float.NaN;
                 }
             }
         }

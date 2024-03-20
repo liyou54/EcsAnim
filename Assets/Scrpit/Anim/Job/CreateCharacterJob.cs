@@ -55,10 +55,10 @@ namespace Anim.RuntimeImage.Job
             Ecb.AddComponent(entity, new PerInstanceCullingTag());
             Ecb.AddSharedComponentManaged(entity, new RenderMeshArray());
             Ecb.AddSharedComponent(entity, RenderFilterSettings);
-
             Ecb.AddComponent<CharacterAnimationIndexPropertyComp>(entity);
             Ecb.AddComponent<CharacterAnimationStartTimePropertyComp>(entity);
             Ecb.AddComponent<CharacterBaseColorPropertyComp>(entity);
+            Ecb.RemoveComponent<CharacterRenderReqComp>(entity);
         }
 
         private int GetInstanceId()

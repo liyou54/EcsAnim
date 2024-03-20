@@ -1,4 +1,5 @@
 using System;
+using Unity.Entities;
 using UnityEngine;
 
 namespace Anim.RuntimeImage
@@ -53,6 +54,16 @@ namespace Anim.RuntimeImage
         public int FrameCount;
         public float Duration;
     }
+
+    public struct AnimClipBlob
+    {
+        public int Id;
+        public BlobString Name;
+        public int StartFrameTexIndex;
+        public int FrameCount;
+        public float Duration;
+    }
+    
 
     public struct UpdateEquipBufferIndexCache
     {

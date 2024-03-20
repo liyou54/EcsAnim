@@ -1,3 +1,4 @@
+using Anim.RuntimeImage.DeleteSystem;
 using Scrpit.Operation;
 using Scrpit.SystemGroup;
 using Unity.Collections;
@@ -17,7 +18,11 @@ namespace Map
             [ReadOnly] public ComponentLookup<LocalToWorld> LocalToWorldLookup;
             [ReadOnly] public ComponentLookup<BattleTeamComp> TeamLookup;
 
-            public void Execute(ref TargetEntityComp targetEntity,in OperationGoalComp operationGoalComp, in BattleTeamComp teamComp, in LocalToWorld localToWorld)
+            public void Execute(
+                ref TargetEntityComp targetEntity,
+                in OperationGoalComp operationGoalComp,
+                in BattleTeamComp teamComp,
+                in LocalToWorld localToWorld)
             {
 
                 if (operationGoalComp.GoalOperationType == OperationType.Idle)
@@ -70,6 +75,19 @@ namespace Map
 
         protected override void OnUpdate()
         {
+            var query = GetEntityQuery(
+                ComponentType.ReadWrite<TargetEntityComp>(),
+                ComponentType.ReadOnly<OperationGoalComp>(),
+                ComponentType.ReadOnly<BattleTeamComp>(),
+                ComponentType.ReadOnly<LocalToWorld>(),
+                ComponentType.ReadOnly<EntityStatusComp>()
+            );
+            query.ResetFilter();
+            query.AddSharedComponentFilter(new EntityStatusComp()
+            {
+                State = EntityStatus.Worrking
+            });
+            
             var mapChunkComp = MapChunkSys.GetMapChunkComponentData();
             var entityLookup = GetEntityStorageInfoLookup();
             var localToWorldLookup = GetComponentLookup<LocalToWorld>(true);
@@ -84,7 +102,7 @@ namespace Map
                 TeamLookup = teamLookup
             };
 
-            Dependency = job.ScheduleParallel(Dependency);
+            Dependency = job.ScheduleParallel(query,Dependency);
         }
     }
 }

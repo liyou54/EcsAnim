@@ -60,7 +60,7 @@ namespace Anim.Test
                 var equipList = characterRendererData.GetEquipList();
                 var entities = new NativeArray<Entity>(count, Allocator.Temp);
 
-                
+
                 var archType = entityManager.CreateArchetype(
                     typeof(CharacterRenderIdComponent),
                     typeof(EntityStatusComp),
@@ -76,9 +76,11 @@ namespace Anim.Test
                     typeof(MoveStepComp),
                     typeof(CharacterRenderInstanceComponent),
                     typeof(OperationGoalComp),
-                    typeof(CurrentOperationComp),
+                    typeof(OperationCurrentComp),
                     typeof(OperationTargetPositionComp),
-                    typeof(OperationRangeComp)
+                    typeof(OperationRangeComp),
+                    typeof(OperationHistoryComp),
+                    typeof(CharacterRenderReqComp)
                 );
                 entityManager.CreateEntity(archType, entities);
                 for (int i = 0; i < count; i++)
@@ -93,14 +95,13 @@ namespace Anim.Test
                     ecb.SetComponent(entities[i], new BattleTeamComp() { TeamId = teamId });
                     ecb.SetSharedComponent(entity, new CharacterRenderIdComponent() { TypeId = 1 });
                     ecb.SetSharedComponent(entity, new EntityStatusComp() { State = EntityStatus.Init });
-                    
+
                     ecb.SetComponent(entities[i], new CharacterBaseColorPropertyComp() { Value = randColor });
                     ecb.SetComponent(entities[i], localToWorld);
                     ecb.SetComponent(entities[i], new CharacterAnimationIndexPropertyComp() { Value = 1 });
                     ecb.SetComponent(entity, new MoveSpeedComp() { Speed = 1 });
-                    ecb.SetComponent(entity, new OperationGoalComp(){GoalOperationType = OperationType.Attack});
-                    ecb.SetComponent(entity,new OperationRangeComp(){Range = 1});
-                    
+                    ecb.SetComponent(entity, new OperationGoalComp() { GoalOperationType = OperationType.Attack });
+                    ecb.SetComponent(entity, new OperationRangeComp() { Range = .5f });
                 }
 
                 entities.Dispose();

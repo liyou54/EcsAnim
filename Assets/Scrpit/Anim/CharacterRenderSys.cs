@@ -35,7 +35,6 @@ namespace Anim.RuntimeImage
         {
             query.ResetFilter();
             query.AddSharedComponentFilter(new CharacterRenderIdComponent() { TypeId = characterRendererData.Id });
-            query.AddSharedComponentFilter(new EntityStatusComp() { State = EntityStatus.Init });
             var characterRenderIdComponent = GetSharedComponentTypeHandle<CharacterRenderIdComponent>();
             EntityTypeHandle = GetEntityTypeHandle();
             var meshId = characterRendererData.BatchMeshID;
@@ -85,37 +84,26 @@ namespace Anim.RuntimeImage
 
         protected override void OnUpdate()
         {
-            // var ecbMarkDel = new EntityCommandBuffer(Allocator.TempJob);
-            // CharacterMarkDelJob characterMarkDelJob = new CharacterMarkDelJob()
-            // {
-            //     Ecb = ecbMarkDel,
-            //     EntityType = GetEntityTypeHandle()
-            // };
-            // var markDelQuery = GetEntityQuery(typeof(EntityStatusComp), typeof(DeleteTag));
-            // markDelQuery.ResetFilter();
-            // markDelQuery.AddSharedComponentFilter(new EntityStatusComp() { State = EntityStatus.Worrking });
-            // Dependency = characterMarkDelJob.Schedule(markDelQuery, Dependency);
-            // Dependency.Complete();
-            // ecbMarkDel.Playback(EntityManager);
-            // ecbMarkDel.Dispose();
-
-
+            
             var ids = GetCharacterRenderStateComponentTypeHandle().CharacterRendererDataDic.Keys;
             var ecbCreateDel = new EntityCommandBuffer(Allocator.TempJob);
             var characterRemoveJobData = new Dictionary<int, RemoveCharacterJob>();
             var characterCreateJobData = new Dictionary<int, CreateCharacterJob>();
             foreach (var id in ids)
             {
-                var renderJobQueryCreate = GetEntityQuery(ComponentType.ReadWrite<CharacterRenderIdComponent>(), ComponentType.ReadWrite<EntityStatusComp>());
-                var renderJobQueryDel = GetEntityQuery(ComponentType.ReadWrite<CharacterRenderIdComponent>(), ComponentType.ReadWrite<EntityStatusComp>());
-                
-                
+                var renderJobQueryDel = GetEntityQuery(
+                    ComponentType.ReadWrite<CharacterRenderIdComponent>(),
+                    ComponentType.ReadWrite<EntityStatusComp>());
+                var renderJobQueryCreate = GetEntityQuery(
+                    ComponentType.ReadOnly<CharacterRenderReqComp>(),
+                    ComponentType.ReadWrite<CharacterRenderIdComponent>(),
+                    ComponentType.ReadWrite<EntityStatusComp>());
                 CharacterRendererData data = GetCharacterRendererData(id);
-                var jobRemove = GetRemoveJob(renderJobQueryCreate, data, ecbCreateDel);
-                Dependency = jobRemove.Schedule(renderJobQueryCreate, Dependency);
+                var jobRemove = GetRemoveJob(renderJobQueryDel, data, ecbCreateDel);
+                Dependency = jobRemove.Schedule(renderJobQueryDel, Dependency);
 
-                var jobCreate = GetCreateJob(renderJobQueryDel, data, ecbCreateDel);
-                Dependency = jobCreate.Schedule(renderJobQueryDel, Dependency);
+                var jobCreate = GetCreateJob(renderJobQueryCreate, data, ecbCreateDel);
+                Dependency = jobCreate.Schedule(renderJobQueryCreate, Dependency);
 
                 characterCreateJobData.Add(id, jobCreate);
                 characterRemoveJobData.Add(id, jobRemove);
@@ -224,8 +212,8 @@ namespace Anim.RuntimeImage
             {
                 id = comp.CharacterRender.Count + 1;
                 comp.CharacterRender.Add(bakedCharacterAsset, id);
-                var data = new CharacterRendererData(bakedCharacterAsset);
-                data.Id = id;
+                var data = new CharacterRendererData(bakedCharacterAsset, id);
+    
                 comp.CharacterRendererDataDic.Add(id, data);
             }
 

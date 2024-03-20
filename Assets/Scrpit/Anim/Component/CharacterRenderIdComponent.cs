@@ -10,9 +10,11 @@ namespace Anim.RuntimeImage
     {
         public int TypeId;
     }
-
-
-
+    
+    public struct CharacterRenderReqComp:IComponentData
+    {
+        public int TypeId;
+    }
     
     // 这个用于标记状态 
     [MaterialProperty("_EquipIndexBufferIndex")]
